@@ -88,18 +88,6 @@ static int max17040_get_property(struct power_supply *psy,
 	return 0;
 }
 
-static int max17040_write_reg(struct i2c_client *client, int reg, u8 value)
-{
-	int ret;
-
-	ret = i2c_smbus_write_byte_data(client, reg, value);
-
-	if (ret < 0)
-		dev_err(&client->dev, "%s: err %d\n", __func__, ret);
-
-	return ret;
-}
-
 static int max17040_read_reg(struct i2c_client *client, int reg)
 {
 	int ret;
@@ -110,12 +98,6 @@ static int max17040_read_reg(struct i2c_client *client, int reg)
 		dev_err(&client->dev, "%s: err %d\n", __func__, ret);
 
 	return ret;
-}
-
-static void max17040_reset(struct i2c_client *client)
-{
-	max17040_write_reg(client, MAX17040_CMD_MSB, 0x54);
-	max17040_write_reg(client, MAX17040_CMD_LSB, 0x00);
 }
 
 static void max17040_get_vcell(struct i2c_client *client)
@@ -240,7 +222,6 @@ static int __devinit max17040_probe(struct i2c_client *client,
 		return ret;
 	}
 
-	max17040_reset(client);
 	max17040_get_version(client);
 
 	if (chip->pdata->rcomp_value)
