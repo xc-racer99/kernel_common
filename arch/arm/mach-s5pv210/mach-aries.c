@@ -116,6 +116,9 @@ static void __init aries_machine_init(void)
 	/* Initialize max8998 and max1704x */
 	aries_mfd_init();
 
+	/* fsa940 */
+	aries_switch_init();
+
 	platform_add_devices(aries_devices, ARRAY_SIZE(aries_devices));
 }
 
