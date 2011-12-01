@@ -10,5 +10,6 @@
 
 /* inits */
 void aries_gpio_init(void) __init;
+void aries_mfd_init(void) __init;
 
 #endif

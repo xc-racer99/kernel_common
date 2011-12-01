@@ -113,6 +113,9 @@ static void __init aries_machine_init(void)
 
 	s3c_pm_init();
 
+	/* Initialize max8998 and max1704x */
+	aries_mfd_init();
+
 	platform_add_devices(aries_devices, ARRAY_SIZE(aries_devices));
 }
 
