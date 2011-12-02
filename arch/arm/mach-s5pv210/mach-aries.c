@@ -1,4 +1,4 @@
-/* linux/arch/arm/mach-s5pv210/mach-aries.c
+ /* linux/arch/arm/mach-s5pv210/mach-aries.c
  *
  * Copyright (c) 2010 Samsung Electronics Co., Ltd.
  *		http://www.samsung.com/
@@ -118,6 +118,9 @@ static void __init aries_machine_init(void)
 
 	/* fsa940 */
 	aries_switch_init();
+
+	/* OneNAND */
+	aries_onenand_init();
 
 	/* SDHCI */
 	aries_sdhci_init();

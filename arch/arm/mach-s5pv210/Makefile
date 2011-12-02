@@ -29,6 +29,7 @@ obj-$(CONFIG_MACH_TORBRECK)	+= mach-torbreck.o
 ifeq ($(CONFIG_MACH_ARIES),y)
 obj-y						+= mach-aries.o
 obj-y						+= aries-gpio.o aries-mfd.o aries-switch.o aries-sdhci.o
+obj-y						+= aries-onenand.o
 endif
 
 # device support
