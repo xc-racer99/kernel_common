@@ -3220,7 +3220,7 @@ out:
 }
 EXPORT_SYMBOL(s3c_gpio_slp_getcfg);
 
-int s3c_gpio_slp_setpull(unsigned int pin, samsung_gpio_pull_t pull)
+int s3c_gpio_slp_setpull_updown(unsigned int pin, samsung_gpio_pull_t pull)
 {
 	struct samsung_gpio_chip *chip = samsung_gpiolib_getchip(pin);
 	unsigned long flags;
@@ -3242,7 +3242,7 @@ int s3c_gpio_slp_setpull(unsigned int pin, samsung_gpio_pull_t pull)
 
 	return ret;
 }
-EXPORT_SYMBOL(s3c_gpio_slp_setpull);
+EXPORT_SYMBOL(s3c_gpio_slp_setpull_updown);
 
 samsung_gpio_pull_t s3c_gpio_slp_getpull(unsigned int pin)
 {
