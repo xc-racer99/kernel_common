@@ -105,28 +105,12 @@ static void __iomem * onenandctl_vbase = NULL;
 #define DMA_IN2OUT			0
 #define DMA_OUT2IN			1
 
-static const char *part_probes[] = { "cmdlinepart", NULL };
-
 struct onenand_info {
 	struct mtd_info		mtd;
-	struct mtd_partition	*parts;
 	struct onenand_chip	onenand;
 	struct resource		*base_res;
 	struct resource		*ctl_res;
 };
-
-
-/* START OF DEVICE SPECIFIC PARTITION LAYOUT */
-
-#if defined(CONFIG_SAMSUNG_GALAXYS4G)
-#include "samsung_galaxys4g.h"
-#else
-/* You should really not use this one... [bh] */
-#include "samsung.h"
-#endif
-
-/* END OF DEVICE SPECIFIC PARTITION LAYOUT */
-
 
 /* Default Flex-OneNAND boundary and lock respectively */
 static int flex_bdry[MAX_DIES * 2] = { -1, 0, -1, 0 };
@@ -804,7 +788,7 @@ static inline int onenand_bufferram_offset(struct mtd_info *mtd, int area)
 }
 
 /**
- * onenand_dma_transfer - [Internal] DMA transfer
+ * onenand_dma_transfer - [INTERN] DMA transfer
  * @param mtd		MTD data structure
  * @param src		Source address
  * @param dest		Destination address
@@ -1379,7 +1363,7 @@ static void onenand_release_device(struct mtd_info *mtd)
 }
 
 /**
- * onenand_transfer_auto_oob - [Internal] oob auto-placement transfer
+ * onenand_transfer_auto_oob - [INTERN] oob auto-placement transfer
  * @param mtd		MTD device structure
  * @param buf		destination address
  * @param column	oob offset to read from
@@ -1443,7 +1427,7 @@ static int onenand_recover_lsb(struct mtd_info *mtd, loff_t addr, int status)
 		return status;
 
 	/* check if we failed due to uncorrectable error */
-	if (status != -EBADMSG && status != ONENAND_BBT_READ_ECC_ERROR)
+	if (!mtd_is_eccerr(status) && status != ONENAND_BBT_READ_ECC_ERROR)
 		return status;
 
 	/* check if address lies in MLC region */
@@ -1485,9 +1469,9 @@ static int onenand_multiple_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 	int ret = 0;
 	int writesize = this->writesize;
 
-	DEBUG(MTD_DEBUG_LEVEL3, "onenand_multiple_read_ops_nolock: from = 0x%08x, len = %i\n", (unsigned int) from, (int) len);
+	pr_debug("onenand_multiple_read_ops_nolock: from = 0x%08x, len = %i\n", (unsigned int) from, (int) len);
 
-	if (ops->mode == MTD_OOB_AUTO)
+	if (ops->mode == MTD_OPS_AUTO_OOB)
 		oobsize = this->ecclayout->oobavail;
 	else
 		oobsize = mtd->oobsize;
@@ -1523,7 +1507,7 @@ static int onenand_multiple_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 		ret = this->wait(mtd, FL_READING);
 		if (unlikely(ret))
 			ret = onenand_recover_lsb(mtd, from, ret);
-		if (ret == -EBADMSG)
+		if (mtd_is_eccerr(ret))
 			ret = 0;
 	}
 
@@ -1535,7 +1519,7 @@ static int onenand_multiple_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 		buf += thislen;
 
 		if (oobbuf) {
-			if (ops->mode == MTD_OOB_AUTO)
+			if (ops->mode == MTD_OPS_AUTO_OOB)
 				onenand_transfer_auto_oob(mtd, oobbuf, oobcolumn, thisooblen);
 			else
 				this->read_bufferram(mtd, ONENAND_SPARERAM, oobbuf, oobcolumn, thisooblen);
@@ -1560,7 +1544,7 @@ static int onenand_multiple_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 		ret = this->wait(mtd, FL_READING);
 		if (unlikely(ret))
 			ret = onenand_recover_lsb(mtd, from, ret);
-		if (ret == -EBADMSG)
+		if (mtd_is_eccerr(ret))
 			ret = 0;
 	}
 
@@ -1569,7 +1553,7 @@ static int onenand_multiple_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 		this->read_bufferram(mtd, ONENAND_DATARAM, buf, column, thislen);
 
 		if (oobbuf) {
-			if (ops->mode == MTD_OOB_AUTO)
+			if (ops->mode == MTD_OPS_AUTO_OOB)
 				onenand_transfer_auto_oob(mtd, oobbuf, oobcolumn, thisooblen);
 			else
 				this->read_bufferram(mtd, ONENAND_SPARERAM, oobbuf, oobcolumn, thisooblen);
@@ -1616,9 +1600,9 @@ static int onenand_simple_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 	int ret = 0;
 	int writesize = this->writesize;
 
-	DEBUG(MTD_DEBUG_LEVEL3, "onenand_simple_read_ops_nolock: from = 0x%08x, len = %i\n", (unsigned int) from, (int) len);
+	pr_debug("onenand_simple_read_ops_nolock: from = 0x%08x, len = %i\n", (unsigned int) from, (int) len);
 
-	if (ops->mode == MTD_OOB_AUTO)
+	if (ops->mode == MTD_OPS_AUTO_OOB)
 		oobsize = this->ecclayout->oobavail;
 	else
 		oobsize = mtd->oobsize;
@@ -1651,7 +1635,7 @@ static int onenand_simple_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 			if (unlikely(ret))
 				ret = onenand_recover_lsb(mtd, from, ret);
 			onenand_update_bufferram(mtd, from, !ret);
-			if (ret == -EBADMSG)
+			if (mtd_is_eccerr(ret))
 				ret = 0;
 		}
 
@@ -1660,7 +1644,7 @@ static int onenand_simple_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 			thisooblen = oobsize - oobcolumn;
 			thisooblen = min_t(int, thisooblen, ooblen - oobread);
 
-			if (ops->mode == MTD_OOB_AUTO)
+			if (ops->mode == MTD_OPS_AUTO_OOB)
 				onenand_transfer_auto_oob(mtd, oobbuf, oobcolumn, thisooblen);
 			else
 				this->read_bufferram(mtd, ONENAND_SPARERAM, oobbuf, oobcolumn, thisooblen);
@@ -1717,9 +1701,9 @@ static int onenand_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 	int ret = 0, boundary = 0;
 	int writesize = this->writesize;
 
-	DEBUG(MTD_DEBUG_LEVEL3, "onenand_read_ops_nolock: from = 0x%08x, len = %i\n", (unsigned int) from, (int) len);
+	pr_debug("onenand_read_ops_nolock: from = 0x%08x, len = %i\n", (unsigned int) from, (int) len);
 
-	if (ops->mode == MTD_OOB_AUTO)
+	if (ops->mode == MTD_OPS_AUTO_OOB)
 		oobsize = this->ecclayout->oobavail;
 	else
 		oobsize = mtd->oobsize;
@@ -1744,7 +1728,7 @@ static int onenand_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 			this->command(mtd, ONENAND_CMD_READ, from, writesize);
 			ret = this->wait(mtd, FL_READING);
 			onenand_update_bufferram(mtd, from, !ret);
-			if (ret == -EBADMSG)
+			if (mtd_is_eccerr(ret))
 				ret = 0;
 		}
 	}
@@ -1780,7 +1764,7 @@ static int onenand_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 			thisooblen = oobsize - oobcolumn;
 			thisooblen = min_t(int, thisooblen, ooblen - oobread);
 
-			if (ops->mode == MTD_OOB_AUTO)
+			if (ops->mode == MTD_OPS_AUTO_OOB)
 				onenand_transfer_auto_oob(mtd, oobbuf, oobcolumn, thisooblen);
 			else
 				this->read_bufferram(mtd, ONENAND_SPARERAM, oobbuf, oobcolumn, thisooblen);
@@ -1804,7 +1788,7 @@ static int onenand_read_ops_nolock(struct mtd_info *mtd, loff_t from,
 		/* Now wait for load */
 		ret = this->wait(mtd, FL_READING);
 		onenand_update_bufferram(mtd, from, !ret);
-		if (ret == -EBADMSG)
+		if (mtd_is_eccerr(ret))
 			ret = 0;
 	}
 
@@ -1840,18 +1824,18 @@ static int onenand_read_oob_nolock(struct mtd_info *mtd, loff_t from,
 	struct mtd_ecc_stats stats;
 	int read = 0, thislen, column, oobsize;
 	size_t len = ops->ooblen;
-	mtd_oob_mode_t mode = ops->mode;
+	unsigned int mode = ops->mode;
 	u_char *buf = ops->oobbuf;
 	int ret = 0, readcmd;
 
 	from += ops->ooboffs;
 
-	DEBUG(MTD_DEBUG_LEVEL3, "onenand_read_oob_nolock: from = 0x%08x, len = %i\n", (unsigned int) from, (int) len);
+	pr_debug("onenand_read_oob_nolock: from = 0x%08x, len = %i\n", (unsigned int) from, (int) len);
 
 	/* Initialize return length value */
 	ops->oobretlen = 0;
 
-	if (mode == MTD_OOB_AUTO)
+	if (mode == MTD_OPS_AUTO_OOB)
 		oobsize = this->ecclayout->oobavail;
 	else
 		oobsize = mtd->oobsize;
@@ -1894,7 +1878,7 @@ static int onenand_read_oob_nolock(struct mtd_info *mtd, loff_t from,
 			break;
 		}
 
-		if (mode == MTD_OOB_AUTO)
+		if (mode == MTD_OPS_AUTO_OOB)
 			onenand_transfer_auto_oob(mtd, buf, column, thislen);
 		else
 			this->read_bufferram(mtd, ONENAND_SPARERAM, buf, column, thislen);
@@ -1976,10 +1960,10 @@ static int onenand_read_oob(struct mtd_info *mtd, loff_t from,
 	int ret;
 
 	switch (ops->mode) {
-	case MTD_OOB_PLACE:
-	case MTD_OOB_AUTO:
+	case MTD_OPS_PLACE_OOB:
+	case MTD_OPS_AUTO_OOB:
 		break;
-	case MTD_OOB_RAW:
+	case MTD_OPS_RAW:
 		/* Not implemented yet */
 	default:
 		return -EINVAL;
@@ -2066,7 +2050,7 @@ int onenand_bbt_read_oob(struct mtd_info *mtd, loff_t from,
 	size_t len = ops->ooblen;
 	u_char *buf = ops->oobbuf;
 
-	DEBUG(MTD_DEBUG_LEVEL3, "onenand_bbt_read_oob: from = 0x%08x, len = %zi\n", (unsigned int) from, len);
+	pr_debug("onenand_bbt_read_oob: from = 0x%08x, len = %zi\n", (unsigned int) from, len);
 
 	/* Initialize return value */
 	ops->oobretlen = 0;
@@ -2244,17 +2228,8 @@ static int onenand_panic_write(struct mtd_info *mtd, loff_t to, size_t len,
 	/* Wait for any existing operation to clear */
 	onenand_panic_wait(mtd);
 
-	DEBUG(MTD_DEBUG_LEVEL3, "onenand_panic_write: to = 0x%08x, len = %i\n",
+	pr_debug("onenand_panic_write: to = 0x%08x, len = %i\n",
 	      (unsigned int) to, (int) len);
-
-	/* Initialize retlen, in case of early exit */
-	*retlen = 0;
-
-	/* Do not allow writes past end of device */
-	if (unlikely((to + len) > mtd->size)) {
-		printk(KERN_ERR "onenand_panic_write: Attempt write to past end of device\n");
-		return -EINVAL;
-	}
 
 	/* Reject writes, which are not page aligned */
 	if (unlikely(NOTALIGNED(to) || NOTALIGNED(len))) {
@@ -2313,7 +2288,7 @@ static int onenand_panic_write(struct mtd_info *mtd, loff_t to, size_t len,
 }
 
 /**
- * onenand_fill_auto_oob - [Internal] oob auto-placement transfer
+ * onenand_fill_auto_oob - [INTERN] oob auto-placement transfer
  * @param mtd		MTD device structure
  * @param oob_buf	oob buffer
  * @param buf		source address
@@ -2375,17 +2350,11 @@ static int onenand_write_ops_nolock(struct mtd_info *mtd, loff_t to,
 	u_char *oobbuf;
 	int ret = 0;
 
-	DEBUG(MTD_DEBUG_LEVEL3, "onenand_write_ops_nolock: to = 0x%08x, len = %i\n", (unsigned int) to, (int) len);
+	pr_debug("onenand_write_ops_nolock: to = 0x%08x, len = %i\n", (unsigned int) to, (int) len);
 
 	/* Initialize retlen, in case of early exit */
 	ops->retlen = 0;
 	ops->oobretlen = 0;
-
-	/* Do not allow writes past end of device */
-	if (unlikely((to + len) > mtd->size)) {
-		printk(KERN_ERR "onenand_write_ops_nolock: Attempt write to past end of device\n");
-		return -EINVAL;
-	}
 
 	/* Reject writes, which are not page aligned */
 	if (unlikely(NOTALIGNED(to) || NOTALIGNED(len))) {
@@ -2397,7 +2366,7 @@ static int onenand_write_ops_nolock(struct mtd_info *mtd, loff_t to,
 	if (!len)
 		return 0;
 
-	if (ops->mode == MTD_OOB_AUTO)
+	if (ops->mode == MTD_OPS_AUTO_OOB)
 		oobsize = this->ecclayout->oobavail;
 	else
 		oobsize = mtd->oobsize;
@@ -2434,7 +2403,7 @@ static int onenand_write_ops_nolock(struct mtd_info *mtd, loff_t to,
 				/* We send data to spare ram with oobsize
 				 * to prevent byte access */
 				memset(oobbuf, 0xff, mtd->oobsize);
-				if (ops->mode == MTD_OOB_AUTO)
+				if (ops->mode == MTD_OPS_AUTO_OOB)
 					onenand_fill_auto_oob(mtd, oobbuf, oob, oobcolumn, thisooblen);
 				else
 					memcpy(oobbuf + oobcolumn, oob, thisooblen);
@@ -2529,7 +2498,7 @@ static int onenand_write_ops_nolock(struct mtd_info *mtd, loff_t to,
 }
 
 /**
- * onenand_write_oob_nolock - [Internal] OneNAND write out-of-band
+ * onenand_write_oob_nolock - [INTERN] OneNAND write out-of-band
  * @param mtd		MTD device structure
  * @param to		offset to write to
  * @param len		number of bytes to write
@@ -2548,16 +2517,16 @@ static int onenand_write_oob_nolock(struct mtd_info *mtd, loff_t to,
 	u_char *oobbuf;
 	size_t len = ops->ooblen;
 	const u_char *buf = ops->oobbuf;
-	mtd_oob_mode_t mode = ops->mode;
+	unsigned int mode = ops->mode;
 
 	to += ops->ooboffs;
 
-	DEBUG(MTD_DEBUG_LEVEL3, "onenand_write_oob_nolock: to = 0x%08x, len = %i\n", (unsigned int) to, (int) len);
+	pr_debug("onenand_write_oob_nolock: to = 0x%08x, len = %i\n", (unsigned int) to, (int) len);
 
 	/* Initialize retlen, in case of early exit */
 	ops->oobretlen = 0;
 
-	if (mode == MTD_OOB_AUTO)
+	if (mode == MTD_OPS_AUTO_OOB)
 		oobsize = this->ecclayout->oobavail;
 	else
 		oobsize = mtd->oobsize;
@@ -2599,7 +2568,7 @@ static int onenand_write_oob_nolock(struct mtd_info *mtd, loff_t to,
 		/* We send data to spare ram with oobsize
 		 * to prevent byte access */
 		memset(oobbuf, 0xff, mtd->oobsize);
-		if (mode == MTD_OOB_AUTO)
+		if (mode == MTD_OPS_AUTO_OOB)
 			onenand_fill_auto_oob(mtd, oobbuf, buf, column, thislen);
 		else
 			memcpy(oobbuf + column, buf, thislen);
@@ -2687,10 +2656,10 @@ static int onenand_write_oob(struct mtd_info *mtd, loff_t to,
 	int ret;
 
 	switch (ops->mode) {
-	case MTD_OOB_PLACE:
-	case MTD_OOB_AUTO:
+	case MTD_OPS_PLACE_OOB:
+	case MTD_OPS_AUTO_OOB:
 		break;
-	case MTD_OOB_RAW:
+	case MTD_OPS_RAW:
 		/* Not implemented yet */
 	default:
 		return -EINVAL;
@@ -2741,13 +2710,7 @@ static int onenand_erase(struct mtd_info *mtd, struct erase_info *instr)
 	struct mtd_erase_region_info *region = NULL;
 	loff_t region_end = 0;
 
-	DEBUG(MTD_DEBUG_LEVEL3, "onenand_erase: start = 0x%012llx, len = %llu\n", (unsigned long long) instr->addr, (unsigned long long) instr->len);
-
-	/* Do not allow erase past end of device */
-	if (unlikely((len + addr) > mtd->size)) {
-		printk(KERN_ERR "onenand_erase: Erase past end of device\n");
-		return -EINVAL;
-	}
+	pr_debug("onenand_erase: start = 0x%012llx, len = %llu\n", (unsigned long long) instr->addr, (unsigned long long) instr->len);
 
 	if (FLEXONENAND(this)) {
 		/* Find the eraseregion of this address */
@@ -2779,8 +2742,6 @@ static int onenand_erase(struct mtd_info *mtd, struct erase_info *instr)
 		printk(KERN_ERR "onenand_erase: Length not block aligned\n");
 		return -EINVAL;
 	}
-
-	instr->fail_addr = MTD_FAIL_ADDR_UNKNOWN;
 
 	/* Grab the lock and see if the device is available */
 	onenand_get_device(mtd, FL_ERASING);
@@ -2856,7 +2817,7 @@ erase_exit:
  */
 static void onenand_sync(struct mtd_info *mtd)
 {
-	DEBUG(MTD_DEBUG_LEVEL3, "onenand_sync: called\n");
+	pr_debug("onenand_sync: called\n");
 
 	/* Grab the lock and see if the device is available */
 	onenand_get_device(mtd, FL_SYNCING);
@@ -2901,7 +2862,7 @@ static int onenand_default_block_markbad(struct mtd_info *mtd, loff_t ofs)
 	struct bbm_info *bbm = this->bbm;
 	u_char buf[2] = {0, 0};
 	struct mtd_oob_ops ops = {
-		.mode = MTD_OOB_PLACE,
+		.mode = MTD_OPS_PLACE_OOB,
 		.ooblen = 2,
 		.oobbuf = buf,
 		.ooboffs = 0,
@@ -2931,7 +2892,6 @@ static int onenand_default_block_markbad(struct mtd_info *mtd, loff_t ofs)
  */
 static int onenand_block_markbad(struct mtd_info *mtd, loff_t ofs)
 {
-	struct onenand_chip *this = mtd->priv;
 	int ret;
 
 	ret = onenand_block_isbad(mtd, ofs);
@@ -2943,7 +2903,7 @@ static int onenand_block_markbad(struct mtd_info *mtd, loff_t ofs)
 	}
 
 	onenand_get_device(mtd, FL_WRITING);
-	ret = this->block_markbad(mtd, ofs);
+	ret = mtd_block_markbad(mtd, ofs);
 	onenand_release_device(mtd);
 	return ret;
 }
@@ -3263,7 +3223,7 @@ static int do_otp_lock(struct mtd_info *mtd, loff_t from, size_t len,
 		ret = onenand_write_ops_nolock(mtd, mtd->writesize * 49, &ops);
 		*retlen = ops.retlen;
 	} else {
-		ops.mode = MTD_OOB_PLACE;
+		ops.mode = MTD_OPS_PLACE_OOB;
 		ops.ooblen = len;
 		ops.oobbuf = buf;
 		ops.ooboffs = 0;
@@ -3773,7 +3733,7 @@ static int flexonenand_check_blocks_erased(struct mtd_info *mtd, int start, int 
 	int i, ret;
 	int block;
 	struct mtd_oob_ops ops = {
-		.mode = MTD_OOB_PLACE,
+		.mode = MTD_OPS_PLACE_OOB,
 		.ooboffs = 0,
 		.ooblen	= mtd->oobsize,
 		.datbuf	= NULL,
@@ -4191,33 +4151,34 @@ int onenand_scan(struct mtd_info *mtd, int maxchips)
 	mtd->oobavail = this->ecclayout->oobavail;
 
 	mtd->ecclayout = this->ecclayout;
+	mtd->ecc_strength = 1;
 
 	/* Fill in remaining MTD driver data */
 	mtd->type = MTD_NANDFLASH;
 	mtd->flags = MTD_CAP_NANDFLASH;
-	mtd->erase = onenand_erase;
-	mtd->point = NULL;
-	mtd->unpoint = NULL;
-	mtd->read = onenand_read;
-	mtd->write = onenand_write;
-	mtd->read_oob = onenand_read_oob;
-	mtd->write_oob = onenand_write_oob;
-	mtd->panic_write = onenand_panic_write;
+	mtd->_erase = onenand_erase;
+	mtd->_point = NULL;
+	mtd->_unpoint = NULL;
+	mtd->_read = onenand_read;
+	mtd->_write = onenand_write;
+	mtd->_read_oob = onenand_read_oob;
+	mtd->_write_oob = onenand_write_oob;
+	mtd->_panic_write = onenand_panic_write;
 #ifdef CONFIG_MTD_ONENAND_OTP
-	mtd->get_fact_prot_info = onenand_get_fact_prot_info;
-	mtd->read_fact_prot_reg = onenand_read_fact_prot_reg;
-	mtd->get_user_prot_info = onenand_get_user_prot_info;
-	mtd->read_user_prot_reg = onenand_read_user_prot_reg;
-	mtd->write_user_prot_reg = onenand_write_user_prot_reg;
-	mtd->lock_user_prot_reg = onenand_lock_user_prot_reg;
+	mtd->_get_fact_prot_info = onenand_get_fact_prot_info;
+	mtd->_read_fact_prot_reg = onenand_read_fact_prot_reg;
+	mtd->_get_user_prot_info = onenand_get_user_prot_info;
+	mtd->_read_user_prot_reg = onenand_read_user_prot_reg;
+	mtd->_write_user_prot_reg = onenand_write_user_prot_reg;
+	mtd->_lock_user_prot_reg = onenand_lock_user_prot_reg;
 #endif
-	mtd->sync = onenand_sync;
-	mtd->lock = onenand_lock;
-	mtd->unlock = onenand_unlock;
-	mtd->suspend = onenand_suspend;
-	mtd->resume = onenand_resume;
-	mtd->block_isbad = onenand_block_isbad;
-	mtd->block_markbad = onenand_block_markbad;
+	mtd->_sync = onenand_sync;
+	mtd->_lock = onenand_lock;
+	mtd->_unlock = onenand_unlock;
+	mtd->_suspend = onenand_suspend;
+	mtd->_resume = onenand_resume;
+	mtd->_block_isbad = onenand_block_isbad;
+	mtd->_block_markbad = onenand_block_markbad;
 	mtd->owner = THIS_MODULE;
 
 	/* Unlock whole block */
@@ -4266,11 +4227,9 @@ static int __devinit s5p_onenand_probe(struct platform_device *dev)
 {
 	struct platform_device *pdev = dev;
 	struct onenand_info *info;
-	//struct flash_platform_data *pdata = pdev->dev.platform_data;
+	struct onenand_platform_data *pdata = pdev->dev.platform_data;
 	struct resource *res;
 	int err;
-	struct mtd_partition *partitions = NULL;
-	int num_partitions = 0;
 
 	info = kzalloc(sizeof(struct onenand_info), GFP_KERNEL);
 	if (!info)
@@ -4345,17 +4304,10 @@ static int __devinit s5p_onenand_probe(struct platform_device *dev)
 		goto out_iounmap2;
 	}
 
-	num_partitions = parse_mtd_partitions(&info->mtd, part_probes, &partitions, 0);
-	if (num_partitions <= 0) {
-		/* default partition table */
-		num_partitions = ARRAY_SIZE(s3c_partition_info);	/* pdata->nr_parts */
-		partitions = s3c_partition_info;			/* pdata->parts */
-	}
 
-	if (partitions && num_partitions > 0)
-		err = mtd_device_register(&info->mtd, partitions, num_partitions);
-	else
-		err = mtd_device_register(&info->mtd, NULL, 0);
+	err = mtd_device_parse_register(&info->mtd, NULL, NULL,
+					pdata ? pdata->parts : NULL,
+					pdata ? pdata->nr_parts : 0);
 
 	if (err < 0)
 		goto out_release_onenand;
@@ -4390,7 +4342,7 @@ static int s5p_onenand_suspend(struct platform_device *pdev, pm_message_t pm)
 {
 	struct onenand_info *info = dev_get_drvdata(&pdev->dev);
 
-	info->mtd.suspend(&info->mtd);
+	info->mtd._suspend(&info->mtd);
 
 	return 0;
 }
@@ -4402,7 +4354,7 @@ static int s5p_onenand_resume(struct platform_device *pdev)
 	/* Unlock whole block */
 	info->onenand.unlock_all(&info->mtd);
 
-	info->mtd.resume(&info->mtd);
+	info->mtd._resume(&info->mtd);
 
 	return 0;
 }
@@ -4443,21 +4395,7 @@ static struct platform_driver s5p_onenand_driver = {
 	}
 };
 
-
-static int __init s5p_onenand_init(void)
-{
-	printk(KERN_INFO "Samsung OneNAND Driver (AUDI).\n");
-
-	return platform_driver_register(&s5p_onenand_driver);
-}
-
-static void __exit s5p_onenand_exit(void)
-{
-	platform_driver_unregister(&s5p_onenand_driver);
-}
-
-module_init(s5p_onenand_init);
-module_exit(s5p_onenand_exit);
+module_platform_driver(s5p_onenand_driver);
 
 MODULE_ALIAS(DRIVER_NAME);
 MODULE_LICENSE("GPL");
