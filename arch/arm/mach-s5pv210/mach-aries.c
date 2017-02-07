@@ -119,6 +119,9 @@ static void __init aries_machine_init(void)
 	/* fsa940 */
 	aries_switch_init();
 
+	/* SDHCI */
+	aries_sdhci_init();
+
 	platform_add_devices(aries_devices, ARRAY_SIZE(aries_devices));
 }
 
