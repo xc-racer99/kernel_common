@@ -223,19 +223,23 @@ static void sdhci_s3c_set_clock(struct sdhci_host *host, unsigned int clock)
 	writel(S3C64XX_SDHCI_CONTROL4_DRIVE_9mA,
 		host->ioaddr + S3C64XX_SDHCI_CONTROL4);
 
-	ctrl = readl(host->ioaddr + S3C_SDHCI_CONTROL2);
-	ctrl |= (S3C64XX_SDHCI_CTRL2_ENSTAASYNCCLR |
-		  S3C64XX_SDHCI_CTRL2_ENCMDCNFMSK |
-		  S3C_SDHCI_CTRL2_ENFBCLKRX |
-		  S3C_SDHCI_CTRL2_DFCNT_NONE |
-		  S3C_SDHCI_CTRL2_ENCLKOUTHOLD);
-	writel(ctrl, host->ioaddr + S3C_SDHCI_CONTROL2);
+	if (ourhost->pdata->cfg_clock)
+		ourhost->pdata->cfg_clock(ourhost->pdev, host, clock);
+	else {
+		ctrl = readl(host->ioaddr + S3C_SDHCI_CONTROL2);
+		ctrl |= (S3C64XX_SDHCI_CTRL2_ENSTAASYNCCLR |
+			  S3C64XX_SDHCI_CTRL2_ENCMDCNFMSK |
+			  S3C_SDHCI_CTRL2_ENFBCLKRX |
+			  S3C_SDHCI_CTRL2_DFCNT_NONE |
+			  S3C_SDHCI_CTRL2_ENCLKOUTHOLD);
+		writel(ctrl, host->ioaddr + S3C_SDHCI_CONTROL2);
 
-	/* reconfigure the controller for new clock rate */
-	ctrl = (S3C_SDHCI_CTRL3_FCSEL1 | S3C_SDHCI_CTRL3_FCSEL0);
-	if (clock < 25 * 1000000)
-		ctrl |= (S3C_SDHCI_CTRL3_FCSEL3 | S3C_SDHCI_CTRL3_FCSEL2);
-	writel(ctrl, host->ioaddr + S3C_SDHCI_CONTROL3);
+		/* reconfigure the controller for new clock rate */
+		ctrl = (S3C_SDHCI_CTRL3_FCSEL1 | S3C_SDHCI_CTRL3_FCSEL0);
+		if (clock < 25 * 1000000)
+			ctrl |= (S3C_SDHCI_CTRL3_FCSEL3 | S3C_SDHCI_CTRL3_FCSEL2);
+		writel(ctrl, host->ioaddr + S3C_SDHCI_CONTROL3);
+	}
 }
 
 /**
@@ -525,7 +529,12 @@ static int __devinit sdhci_s3c_probe(struct platform_device *pdev)
 
 	host->hw_name = "samsung-hsmmc";
 	host->ops = &sdhci_s3c_ops;
-	host->quirks = 0;
+
+	if (pdata->host_quirks)
+		host->quirks = pdata->host_quirks;
+	else
+		host->quirks = 0;
+
 	host->irq = irq;
 
 	/* Setup quirks for the controller */
@@ -570,6 +579,8 @@ static int __devinit sdhci_s3c_probe(struct platform_device *pdev)
 
 	if (pdata->pm_caps)
 		host->mmc->pm_caps |= pdata->pm_caps;
+	if (pdata->pm_flags)
+		host->mmc->pm_flags |= pdata->pm_flags;
 
 	host->quirks |= (SDHCI_QUIRK_32BIT_DMA_ADDR |
 			 SDHCI_QUIRK_32BIT_DMA_SIZE);
@@ -675,6 +686,10 @@ static int __devexit sdhci_s3c_remove(struct platform_device *pdev)
 static int sdhci_s3c_suspend(struct device *dev)
 {
 	struct sdhci_host *host = dev_get_drvdata(dev);
+	struct sdhci_s3c *sc = to_s3c(host);
+
+	if (sc->pdata->pm_flags)
+		host->mmc->pm_flags |= sc->pdata->pm_flags;
 
 	return sdhci_suspend_host(host);
 }

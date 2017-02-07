@@ -51,12 +51,18 @@ void s3c_sdhci_set_platdata(struct s3c_sdhci_platdata *pd,
 		set->max_width = pd->max_width;
 	if (pd->cfg_gpio)
 		set->cfg_gpio = pd->cfg_gpio;
+	if (pd->cfg_clock)
+		set->cfg_clock = pd->cfg_clock;
 	if (pd->host_caps)
 		set->host_caps |= pd->host_caps;
 	if (pd->host_caps2)
 		set->host_caps2 |= pd->host_caps2;
+	if (pd->host_quirks)
+		set->host_quirks |= pd->host_quirks;
 	if (pd->pm_caps)
 		set->pm_caps |= pd->pm_caps;
+	if (pd->pm_flags)
+		set->pm_flags |= pd->pm_flags;
 	if (pd->clk_type)
 		set->clk_type = pd->clk_type;
 }

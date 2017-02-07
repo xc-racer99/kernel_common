@@ -24,6 +24,7 @@ struct platform_device;
 struct mmc_host;
 struct mmc_card;
 struct mmc_ios;
+struct sdhci_host;
 
 enum cd_types {
 	S3C_SDHCI_CD_INTERNAL,	/* use mmc internal CD line */
@@ -58,6 +59,10 @@ enum clk_types {
  *		 cd_type == S3C_SDHCI_CD_GPIO
  * @ext_cd_gpio_invert: invert values for external CD gpio line
  * @cfg_gpio: Configure the GPIO for a specific card bit-width
+ * @cfg_card: Configure the interface for a specific card and speed. This
+ *		 is necessary the controllers and/or GPIO blocks require the
+ *		 changing of driver-strength and other controls dependent on
+ *		 the card and speed of operation.
  *
  * Initialisation data specific to either the machine or the platform
  * for the device driver to use or call-back when configuring gpio or
@@ -67,7 +72,9 @@ struct s3c_sdhci_platdata {
 	unsigned int	max_width;
 	unsigned int	host_caps;
 	unsigned int	host_caps2;
+	unsigned int	host_quirks;
 	unsigned int	pm_caps;
+	unsigned int	pm_flags;
 	enum cd_types	cd_type;
 	enum clk_types	clk_type;
 
@@ -79,6 +86,8 @@ struct s3c_sdhci_platdata {
 						      int state));
 
 	void	(*cfg_gpio)(struct platform_device *dev, int width);
+	void    (*cfg_clock)(struct platform_device *dev,
+						     struct sdhci_host *host, unsigned int clock);
 };
 
 /* s3c_sdhci_set_platdata() - common helper for setting SDHCI platform data
