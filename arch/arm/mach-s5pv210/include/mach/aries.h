@@ -8,4 +8,7 @@
 #ifndef __ARIES_H
 #define __ARIES_H __FILE__
 
+/* inits */
+void aries_gpio_init(void) __init;
+
 #endif

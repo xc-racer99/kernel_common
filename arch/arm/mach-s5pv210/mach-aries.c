@@ -107,6 +107,10 @@ static void __init aries_map_io(void)
 
 static void __init aries_machine_init(void)
 {
+
+	/* Initialize the GPIOs */
+	aries_gpio_init();
+
 	s3c_pm_init();
 
 	platform_add_devices(aries_devices, ARRAY_SIZE(aries_devices));

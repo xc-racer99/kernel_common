@@ -26,7 +26,10 @@ obj-$(CONFIG_MACH_SMDKC110)	+= mach-smdkc110.o
 obj-$(CONFIG_MACH_SMDKV210)	+= mach-smdkv210.o
 obj-$(CONFIG_MACH_TORBRECK)	+= mach-torbreck.o
 
-obj-$(CONFIG_MACH_ARIES)	+= mach-aries.o
+ifeq ($(CONFIG_MACH_ARIES),y)
+obj-y						+= mach-aries.o
+obj-y						+= aries-gpio.o aries-mfd.o
+endif
 
 # device support
 
