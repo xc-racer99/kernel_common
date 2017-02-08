@@ -12,6 +12,7 @@ obj-				:=
 
 # Core files
 
+obj-y				+= bootmem.o
 obj-y				+= clock.o
 obj-y				+= irq.o
 obj-$(CONFIG_S5P_EXT_INT)	+= irq-eint.o
