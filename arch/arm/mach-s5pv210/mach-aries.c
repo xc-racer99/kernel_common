@@ -20,6 +20,7 @@
 #include <asm/mach-types.h>
 
 #include <mach/map.h>
+#include <mach/media.h>
 #include <mach/regs-clock.h>
 
 #include <plat/gpio-cfg.h>
@@ -78,6 +79,68 @@ static struct s3c2410_uartcfg aries_uartcfgs[] __initdata = {
 	},
 };
 
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0 (11264 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2 (11264 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0 (14336 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1 (21504 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMD (S5PV210_LCD_WIDTH * \
+					     S5PV210_LCD_HEIGHT * 4 * \
+					     (CONFIG_FB_S3C_NR_BUFFERS + \
+						 (CONFIG_FB_S3C_NUM_OVLY_WIN * \
+						  CONFIG_FB_S3C_NUM_BUF_OVLY_WIN)))
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (916 * SZ_1K)
+
+static struct s5p_media_device aries_media_devs[] = {
+#ifdef CONFIG_VIDEO_MFC50
+	[0] = {
+		.id = S5P_MDEV_MFC,
+		.name = "mfc",
+		.bank = 0,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0,
+		.paddr = 0,
+	},
+	[1] = {
+		.id = S5P_MDEV_MFC,
+		.name = "mfc",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1,
+		.paddr = 0,
+	},
+#endif
+#ifdef CONFIG_VIDEO_FIMC
+	[2] = {
+		.id = S5P_MDEV_FIMC0,
+		.name = "fimc0",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0,
+		.paddr = 0,
+	},
+	[3] = {
+		.id = S5P_MDEV_FIMC2,
+		.name = "fimc2",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2,
+		.paddr = 0,
+	},
+#endif
+#ifdef CONFIG_VIDEO_JPEG_V2
+	[4] = {
+		.id = S5P_MDEV_JPEG,
+		.name = "jpeg",
+		.bank = 0,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG,
+		.paddr = 0,
+	},
+#endif
+	[5] = {
+		.id = S5P_MDEV_FIMD,
+		.name = "fimd",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMD,
+		.paddr = 0,
+	},
+};
+
 static struct platform_device *aries_devices[] __initdata = {
 	&s3c_device_rtc,
 	&s3c_device_wdt,
@@ -103,6 +166,9 @@ static void __init aries_map_io(void)
 	s3c24xx_init_clocks(24000000);
 	s3c24xx_init_uarts(aries_uartcfgs, ARRAY_SIZE(aries_uartcfgs));
 	s5p_set_timer_source(S5P_PWM3, S5P_PWM4);
+
+	s5p_reserve_bootmem(aries_media_devs,
+		ARRAY_SIZE(aries_media_devs), S5P_RANGE_MFC);
 }
 
 static void __init aries_machine_init(void)

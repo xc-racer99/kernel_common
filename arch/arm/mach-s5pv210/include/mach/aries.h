@@ -8,6 +8,9 @@
 #ifndef __ARIES_H
 #define __ARIES_H __FILE__
 
+#define S5PV210_LCD_WIDTH	480
+#define S5PV210_LCD_HEIGHT	800
+
 /* inits */
 void aries_gpio_init(void) __init;
 void aries_mfd_init(void) __init;
