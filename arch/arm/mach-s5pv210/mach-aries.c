@@ -186,6 +186,9 @@ static void __init aries_machine_init(void)
 	/* Display */
 	aries_display_init();
 
+	/* Input */
+	aries_input_init();
+
 	/* fsa940 */
 	aries_switch_init();
 

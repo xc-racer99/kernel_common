@@ -14,6 +14,7 @@
 /* inits */
 void aries_display_init(void) __init;
 void aries_gpio_init(void) __init;
+void aries_input_init(void) __init;
 void aries_mfd_init(void) __init;
 void aries_onenand_init(void) __init;
 void aries_sdhci_init(void) __init;
