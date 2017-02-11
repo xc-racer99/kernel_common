@@ -34,6 +34,14 @@ config S5P_GPIO_INT
 	help
 	  Common code for the GPIO interrupts (other than external interrupts.)
 
+# FB part
+config S5P_DEV_FB
+	bool
+	depends on FB_S3C
+	default y
+	help
+	  Compile in platform device definitions for FIMD controller
+
 config S5P_HRT
 	bool
 	select SAMSUNG_DEV_PWM

@@ -12,10 +12,14 @@
 #define S5PV210_LCD_HEIGHT	800
 
 /* inits */
+void aries_display_init(void) __init;
 void aries_gpio_init(void) __init;
 void aries_mfd_init(void) __init;
 void aries_onenand_init(void) __init;
 void aries_sdhci_init(void) __init;
 void aries_switch_init(void) __init;
+
+/* devices */
+extern struct s5p_panel_data aries_panel_data;
 
 #endif

@@ -34,6 +34,13 @@ config S5PV210_SETUP_IDE
 	help
 	  Common setup code for S5PV210 IDE GPIO configurations
 
+config S5PV210_SETUP_FB
+	bool
+	depends on FB_S3C
+	default y
+	help
+	  Common setup code for FIMD controller.
+
 config S5PV210_SETUP_FB_24BPP
 	bool
 	help

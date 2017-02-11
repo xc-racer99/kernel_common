@@ -68,6 +68,7 @@ extern struct platform_device s3c_device_i2c13;
 extern struct platform_device s3c_device_i2c14;
 extern struct platform_device s3c_device_iis;
 extern struct platform_device s3c_device_lcd;
+extern struct platform_device s3c_device_g3d;
 extern struct platform_device s3c_device_nand;
 extern struct platform_device s3c_device_ohci;
 extern struct platform_device s3c_device_onenand;

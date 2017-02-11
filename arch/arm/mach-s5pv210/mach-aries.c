@@ -28,6 +28,7 @@
 #include <plat/devs.h>
 #include <plat/cpu.h>
 #include <plat/s5p-time.h>
+#include <plat/media.h>
 #include <plat/pm.h>
 
 #include <mach/aries.h>
@@ -181,6 +182,9 @@ static void __init aries_machine_init(void)
 
 	/* Initialize max8998 and max1704x */
 	aries_mfd_init();
+
+	/* Display */
+	aries_display_init();
 
 	/* fsa940 */
 	aries_switch_init();

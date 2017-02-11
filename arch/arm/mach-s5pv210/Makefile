@@ -30,6 +30,7 @@ ifeq ($(CONFIG_MACH_ARIES),y)
 obj-y						+= mach-aries.o
 obj-y						+= aries-gpio.o aries-mfd.o aries-switch.o aries-sdhci.o
 obj-y						+= aries-onenand.o
+obj-y						+= aries-panel.o aries-display.o
 obj-y						+= power-domain.o
 endif
 
@@ -38,6 +39,7 @@ endif
 obj-y				+= dev-audio.o
 
 obj-y					+= setup-i2c0.o
+obj-$(CONFIG_S5PV210_SETUP_FB)		+= setup-fb.o
 obj-$(CONFIG_S5PV210_SETUP_FB_24BPP)	+= setup-fb-24bpp.o
 obj-$(CONFIG_S5PV210_SETUP_FIMC)	+= setup-fimc.o
 obj-$(CONFIG_S5PV210_SETUP_I2C1)	+= setup-i2c1.o
