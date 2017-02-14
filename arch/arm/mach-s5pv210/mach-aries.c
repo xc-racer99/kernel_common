@@ -12,6 +12,7 @@
 #include <linux/types.h>
 #include <linux/init.h>
 #include <linux/serial_core.h>
+#include <linux/platform_data/s3c-hsotg.h>
 
 #include <asm/hardware/vic.h>
 #include <asm/mach/arch.h>
@@ -172,6 +173,8 @@ static void __init aries_map_io(void)
 		ARRAY_SIZE(aries_media_devs), S5P_RANGE_MFC);
 }
 
+static struct s3c_hsotg_plat aries_hsotg_pdata;
+
 static void __init aries_machine_init(void)
 {
 
@@ -199,6 +202,9 @@ static void __init aries_machine_init(void)
 	aries_sdhci_init();
 
 	platform_add_devices(aries_devices, ARRAY_SIZE(aries_devices));
+
+	s3c_hsotg_set_platdata(&aries_hsotg_pdata);
+	platform_device_register(&s3c_device_usb_hsotg);
 }
 
 MACHINE_START(ARIES, "ARIES")
