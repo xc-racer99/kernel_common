@@ -149,11 +149,13 @@ config MACH_ARIES
 	select S5P_GPIO_INT
 	select S3C_DEV_HSMMC1
 	select S3C_DEV_HSMMC2
+	select S3C_DEV_I2C2
 	select S3C_DEV_I2C_GPIO
 	select S3C_DEV_RTC
 	select S3C_DEV_USB_HSOTG
 	select S3C_DEV_WDT
 	select S5P_DEV_ONENAND
+	select S5PV210_SETUP_I2C2
 	select S5PV210_SETUP_SDHCI
 	select S5PV210_SETUP_USB_PHY
 	help

@@ -1,7 +1,15 @@
+#include <linux/gpio.h>
 #include <linux/gpio_event.h>
+#include <linux/i2c.h>
+#include <linux/i2c/atmel_mxt_ts.h>
+#include <linux/interrupt.h>
 #include <linux/platform_device.h>
 
 #include <mach/gpio.h>
+
+#include <plat/devs.h>
+#include <plat/gpio-cfg.h>
+#include <plat/iic.h>
 
 #include <mach/aries.h>
 
@@ -49,7 +57,53 @@ static struct platform_device aries_input_device = {
 	},
 };
 
+/* TSP */
+static struct mxt_platform_data qt602240_platform_data = {
+	.x_line		= 19,
+	.y_line		= 11,
+	.x_size		= 800,
+	.y_size		= 480,
+	.blen		= 0x21,
+	.threshold	= 0x28,
+	.voltage	= 2800000,              /* 2.8V */
+	.orient		= MXT_DIAGONAL,
+	.irqflags	= IRQF_TRIGGER_FALLING,
+};
+
+static struct s3c2410_platform_i2c i2c2_data __initdata = {
+	.flags		= 0,
+	.bus_num	= 2,
+	.slave_addr	= 0x10,
+	.frequency	= 400 * 1000,
+	.sda_delay	= 100,
+};
+
+static struct i2c_board_info i2c2_devs[] __initdata = {
+	{
+		I2C_BOARD_INFO("qt602240_ts", 0x4a),
+		.platform_data = &qt602240_platform_data,
+	},
+};
+
+static void __init aries_tsp_init(void)
+{
+	int gpio, ret;
+
+	gpio = S5PV210_GPJ1(3);		/* XMSMADDR_11 */
+	gpio_request(gpio, "TSP_LDO_ON");
+	gpio_direction_output(gpio, 1);
+	gpio_export(gpio, 0);
+
+	s3c_gpio_cfgall_range(S5PV210_GPJ0(5), 1, S3C_GPIO_SFN(0xf), S3C_GPIO_PULL_UP);
+	ret = s5p_register_gpio_interrupt(S5PV210_GPJ0(5));
+	if (ret < 0)
+		printk(KERN_ERR "aries-input: unable to register tsp interrupt\n");
+	else
+		i2c2_devs[0].irq = ret;
+}
+
 static struct platform_device *aries_devices[] __initdata = {
+	&s3c_device_i2c2,
 	&aries_input_device,
 };
 
@@ -57,4 +111,11 @@ void __init aries_input_init(void)
 {
 	/* register devices */
 	platform_add_devices(aries_devices, ARRAY_SIZE(aries_devices));
+
+	/* TSP: call before I2C 2 registeration */
+	aries_tsp_init();
+
+	/* I2C2 */
+	s3c_i2c2_set_platdata(&i2c2_data);
+	i2c_register_board_info(2, i2c2_devs, ARRAY_SIZE(i2c2_devs));
 }
