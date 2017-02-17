@@ -17,10 +17,13 @@ void aries_gpio_init(void) __init;
 void aries_input_init(void) __init;
 void aries_mfd_init(void) __init;
 void aries_onenand_init(void) __init;
+void aries_pm_init(void) __init;
 void aries_sdhci_init(void) __init;
 void aries_switch_init(void) __init;
 
 /* devices */
 extern struct s5p_panel_data aries_panel_data;
 
+/* restart handler */
+void aries_restart(char mode, const char *cmd);
 #endif

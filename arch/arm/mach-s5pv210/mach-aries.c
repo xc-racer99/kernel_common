@@ -181,7 +181,7 @@ static void __init aries_machine_init(void)
 	/* Initialize the GPIOs */
 	aries_gpio_init();
 
-	s3c_pm_init();
+	aries_pm_init();
 
 	/* Initialize max8998 and max1704x */
 	aries_mfd_init();
@@ -215,5 +215,5 @@ MACHINE_START(ARIES, "ARIES")
 	.map_io		= aries_map_io,
 	.init_machine	= aries_machine_init,
 	.timer		= &s5p_timer,
-	.restart	= s5pv210_restart,
+	.restart	= aries_restart,
 MACHINE_END
