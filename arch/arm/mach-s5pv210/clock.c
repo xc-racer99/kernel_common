@@ -906,6 +906,7 @@ static struct clksrc_clk clksrcs[] = {
 	}, {
 		.clk		= {
 			.name		= "sclk_g3d",
+			.devname	= "pvrsrvkm",
 			.enable		= s5pv210_clk_ip0_ctrl,
 			.ctrlbit	= (1 << 8),
 		},
@@ -1324,6 +1325,9 @@ void __init_or_cpufreq s5pv210_setup_clocks(void)
 		if (!strcmp(pclkSrc->clk.name, "sclk_mdnie")) {
 			clk_set_parent(&pclkSrc->clk, &clk_mout_mpll.clk);
 			clk_set_rate(&pclkSrc->clk, 167*MHZ);
+		} else if (!strcmp(pclkSrc->clk.name, "sclk_g3d")) {
+			clk_set_parent(&pclkSrc->clk, &clk_mout_mpll.clk);
+			clk_set_rate(&pclkSrc->clk, 66700000);
 		}
 		/* Display the clock source */
 		s3c_set_clksrc(pclkSrc, true);
