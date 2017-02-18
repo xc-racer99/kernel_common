@@ -18,6 +18,7 @@ void aries_input_init(void) __init;
 void aries_mfd_init(void) __init;
 void aries_onenand_init(void) __init;
 void aries_pm_init(void) __init;
+void aries_power_init(void) __init;
 void aries_sdhci_init(void) __init;
 void aries_switch_init(void) __init;
 

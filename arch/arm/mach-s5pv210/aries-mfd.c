@@ -11,7 +11,6 @@
 #include <linux/i2c.h>
 #include <linux/regulator/consumer.h>
 #include <linux/mfd/max8998.h>
-#include <linux/max17040_battery.h>
 #include <linux/gpio.h>
 
 #include <mach/irqs.h>
@@ -31,7 +30,7 @@ static struct regulator_consumer_supply ldo3_consumer[] = {
 };
 
 static struct regulator_consumer_supply ldo4_consumer[] = {
-	{ .supply = "vadc", },
+	REGULATOR_SUPPLY("vdd", "samsung-adc-v3")
 };
 
 static struct regulator_consumer_supply ldo5_consumer[] = {
@@ -88,6 +87,10 @@ static struct regulator_consumer_supply buck2_consumer[] = {
 
 static struct regulator_consumer_supply buck4_consumer[] = {
 	{ .supply = "cam_isp_core", },
+};
+
+static struct regulator_consumer_supply charger_consumer[] = {
+	{ .supply = "charger", },
 };
 
 /* Regulators */
@@ -374,6 +377,15 @@ static struct regulator_init_data aries_buck4_data = {
 	.consumer_supplies	= buck4_consumer,
 };
 
+static struct regulator_init_data aries_charger_data = {
+	.constraints	= {
+		.name		= "CHARGER",
+		.valid_ops_mask	= REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies	= ARRAY_SIZE(charger_consumer),
+	.consumer_supplies	= charger_consumer,
+};
+
 static struct max8998_regulator_data aries_regulators[] = {
 	{ MAX8998_LDO2,  &aries_ldo2_data },
 	{ MAX8998_LDO3,  &aries_ldo3_data },
@@ -394,6 +406,7 @@ static struct max8998_regulator_data aries_regulators[] = {
 	{ MAX8998_BUCK2, &aries_buck2_data },
 	{ MAX8998_BUCK3, &aries_buck3_data },
 	{ MAX8998_BUCK4, &aries_buck4_data },
+	{ MAX8998_CHARGER,   &aries_charger_data },
 };
 
 static struct max8998_platform_data max8998_pdata = {
@@ -414,7 +427,7 @@ static struct max8998_platform_data max8998_pdata = {
 	.wakeup		= true,
 	.eoc		= 0,
 	.restart	= 0,
-	.timeout	= 5,
+	.timeout	= 6,
 	
 };
 
@@ -427,19 +440,8 @@ static struct i2c_board_info i2c6_devs[] __initdata = {
 	},
 };
 
-static struct max17040_platform_data max17040_pdata = { 0 };
-
-static struct i2c_board_info i2c9_devs[] __initdata = {
-	{
-		I2C_BOARD_INFO("max17040", (0x6D >> 1)),
-		.platform_data = &max17040_pdata,
-		.irq = IRQ_EINT(27),
-	},
-};
-
 static struct platform_device *aries_devices[] __initdata = {
 	&s3c_device_i2c6,
-	&s3c_device_i2c9,
 };
 
 void __init aries_mfd_init(void)
@@ -450,7 +452,4 @@ void __init aries_mfd_init(void)
 	/* max8998 */
 	i2c_register_board_info(6, i2c6_devs, ARRAY_SIZE(i2c6_devs));
 	regulator_has_full_constraints();
-	
-	/* max17040 */
-	i2c_register_board_info(9, i2c9_devs, ARRAY_SIZE(i2c9_devs));
 }

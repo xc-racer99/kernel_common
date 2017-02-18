@@ -144,6 +144,7 @@ static struct s5p_media_device aries_media_devs[] = {
 };
 
 static struct platform_device *aries_devices[] __initdata = {
+	&s3c_device_adc,
 	&s3c_device_rtc,
 	&s3c_device_wdt,
 
@@ -187,8 +188,11 @@ static void __init aries_machine_init(void)
 
 	aries_pm_init();
 
-	/* Initialize max8998 and max1704x */
+	/* Initialize max8998 */
 	aries_mfd_init();
+
+	/* Power */
+	aries_power_init();
 
 	/* Display */
 	aries_display_init();
