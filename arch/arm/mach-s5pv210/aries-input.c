@@ -1,7 +1,9 @@
+#include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/gpio_event.h>
 #include <linux/i2c.h>
 #include <linux/i2c/atmel_mxt_ts.h>
+#include <linux/input/cypress-touchkey.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 
@@ -12,6 +14,67 @@
 #include <plat/iic.h>
 
 #include <mach/aries.h>
+
+/* Cypress Touchkey */
+static void touchkey_onoff(int onoff)
+{
+	gpio_direction_output(_3_GPIO_TOUCH_EN, onoff);
+
+	if (onoff == TOUCHKEY_OFF)
+		msleep(30);
+	else
+		msleep(25);
+}
+
+static void touchkey_gpio_sleep(int onoff) {
+	if (onoff == TOUCHKEY_ON)
+		s3c_gpio_slp_cfgpin(_3_GPIO_TOUCH_EN, S3C_GPIO_SLP_OUT1);
+	else
+		s3c_gpio_slp_cfgpin(_3_GPIO_TOUCH_EN, S3C_GPIO_SLP_OUT0);
+}
+
+static const int touchkey_code[] = {
+	KEY_MENU,
+	KEY_BACK,
+	KEY_HOMEPAGE,
+	KEY_SEARCH
+};
+
+static struct touchkey_platform_data touchkey_data = {
+	.keycode_cnt = ARRAY_SIZE(touchkey_code),
+	.keycode = touchkey_code,
+	.touchkey_onoff = touchkey_onoff,
+	.touchkey_sleep_onoff = touchkey_gpio_sleep,
+	.scl_pin = _3_TOUCH_SCL_28V,
+	.sda_pin = _3_TOUCH_SDA_28V,
+	.en_pin = _3_GPIO_TOUCH_EN,
+};
+
+static struct i2c_board_info i2c10_devs[] __initdata = {
+	{
+		I2C_BOARD_INFO(CYPRESS_TOUCHKEY_DEV_NAME, 0x20),
+		.platform_data = &touchkey_data,
+	},
+};
+
+static void __init touchkey_gpio_init(void)
+{
+	int ret = 0;
+
+	ret = gpio_request(_3_GPIO_TOUCH_EN, "TOUCH_EN");
+	if (ret)
+		printk(KERN_ERR "Failed to request gpio touch_en.\n");
+
+	/* gpio interrupt */
+	s3c_gpio_cfgrange_nopull(_3_GPIO_TOUCH_INT, 1, _3_GPIO_TOUCH_INT_AF);
+	ret = s5p_register_gpio_interrupt(_3_GPIO_TOUCH_INT);
+	if (ret < 0)
+		printk(KERN_ERR "aries-input: unable to register touchkey interrupt\n");
+	else
+		i2c10_devs[0].irq = ret;
+}
+
+/* Hardware Keys */
 
 static struct gpio_event_direct_entry aries_keypad_key_map[] = {
 	{
@@ -104,6 +167,7 @@ static void __init aries_tsp_init(void)
 
 static struct platform_device *aries_devices[] __initdata = {
 	&s3c_device_i2c2,
+	&s3c_device_i2c10,
 	&aries_input_device,
 };
 
@@ -118,4 +182,8 @@ void __init aries_input_init(void)
 	/* I2C2 */
 	s3c_i2c2_set_platdata(&i2c2_data);
 	i2c_register_board_info(2, i2c2_devs, ARRAY_SIZE(i2c2_devs));
+
+	/* Cypress Touchkey */
+	touchkey_gpio_init();
+	i2c_register_board_info(10, i2c10_devs, ARRAY_SIZE(i2c10_devs));
 }
