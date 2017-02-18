@@ -31,6 +31,7 @@ obj-y						+= mach-aries.o
 obj-y						+= aries-gpio.o aries-mfd.o aries-switch.o aries-sdhci.o
 obj-y						+= aries-onenand.o aries-input.o
 obj-y						+= aries-panel.o aries-display.o
+obj-y						+= aries-vibrator.o
 obj-y						+= power-domain.o aries-pm.o
 endif
 

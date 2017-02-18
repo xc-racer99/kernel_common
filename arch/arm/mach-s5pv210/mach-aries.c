@@ -146,6 +146,10 @@ static struct s5p_media_device aries_media_devs[] = {
 static struct platform_device *aries_devices[] __initdata = {
 	&s3c_device_rtc,
 	&s3c_device_wdt,
+
+	&s3c_device_timer[0],
+	&s3c_device_timer[1],
+	&s3c_device_timer[2],
 };
 
 static void __init aries_fixup(struct tag *tag, char **cmdline,
