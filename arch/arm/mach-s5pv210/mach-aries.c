@@ -188,6 +188,8 @@ static void __init aries_machine_init(void)
 
 	aries_pm_init();
 
+	platform_add_devices(aries_devices, ARRAY_SIZE(aries_devices));
+
 	/* Initialize max8998 */
 	aries_mfd_init();
 
@@ -209,7 +211,8 @@ static void __init aries_machine_init(void)
 	/* SDHCI */
 	aries_sdhci_init();
 
-	platform_add_devices(aries_devices, ARRAY_SIZE(aries_devices));
+	/* Wifi */
+	aries_wifi_init();
 
 	s3c_hsotg_set_platdata(&aries_hsotg_pdata);
 	platform_device_register(&s3c_device_usb_hsotg);

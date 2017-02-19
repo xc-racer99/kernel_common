@@ -23,6 +23,7 @@ void aries_pm_init(void) __init;
 void aries_power_init(void) __init;
 void aries_sdhci_init(void) __init;
 void aries_switch_init(void) __init;
+void aries_wifi_init(void) __init;
 
 /* devices */
 extern struct s5p_panel_data aries_panel_data;
