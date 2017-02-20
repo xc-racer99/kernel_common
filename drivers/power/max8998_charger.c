@@ -30,43 +30,124 @@
 struct max8998_battery_data {
 	struct device *dev;
 	struct max8998_dev *iodev;
-	struct power_supply battery;
+	struct power_supply psy_ac;
+	struct power_supply psy_usb;
+	enum cable_type_t cable_status;
+	struct max8998_charger_callbacks callbacks;
 };
 
 static enum power_supply_property max8998_battery_props[] = {
-	POWER_SUPPLY_PROP_PRESENT, /* the presence of battery */
+	POWER_SUPPLY_PROP_STATUS, /* Full or not full only */
+	POWER_SUPPLY_PROP_PRESENT, /* the presence of the power supply */
 	POWER_SUPPLY_PROP_ONLINE, /* charger is active or not */
 };
 
-/* Note that the charger control is done by a current regulator "CHARGER" */
+static void max8998_set_cable(struct max8998_charger_callbacks *ptr,
+	enum cable_type_t status)
+{
+	int ret;
+	struct i2c_client *i2c;
+
+	struct max8998_battery_data *max8998 = container_of(ptr, struct max8998_battery_data, callbacks);
+
+	i2c = max8998->iodev->i2c;
+	max8998->cable_status = status;
+
+	if (status == CABLE_TYPE_NONE) {
+		/* disable charging */
+		ret = max8998_update_reg(i2c, MAX8998_REG_CHGR2,
+			(1 << MAX8998_SHIFT_CHGEN), MAX8998_MASK_CHGEN);
+		if (ret < 0)
+			goto err;
+	} else {
+		if (status == CABLE_TYPE_USB) {
+			/* usb charging - set eoc */
+			ret = max8998_write_reg(i2c, MAX8998_REG_CHGR1,
+						(6 << MAX8998_SHIFT_TOPOFF) |
+						(3 << MAX8998_SHIFT_RSTR) |
+						(2 << MAX8998_SHIFT_ICHG));
+			if (ret < 0)
+				goto err;
+		} else {
+			/* ac charging - set eoc */
+			ret = max8998_write_reg(i2c, MAX8998_REG_CHGR1,
+						(2 << MAX8998_SHIFT_TOPOFF) |
+						(3 << MAX8998_SHIFT_RSTR) |
+						(5 << MAX8998_SHIFT_ICHG));
+			if (ret < 0)
+				goto err;
+		}
+
+		/* enable charging */
+		ret = max8998_write_reg(i2c, MAX8998_REG_CHGR2,
+					(2 << MAX8998_SHIFT_ESAFEOUT) |
+					(2 << MAX8998_SHIFT_FT) |
+					(0 << MAX8998_SHIFT_CHGEN));
+		if (ret < 0)
+			goto err;
+}
+
+	power_supply_changed(&max8998->psy_ac);
+	power_supply_changed(&max8998->psy_usb);
+	return;
+
+err:
+	pr_err("max8998_read_reg error\n");
+}
+
 static int max8998_battery_get_property(struct power_supply *psy,
 		enum power_supply_property psp,
 		union power_supply_propval *val)
 {
-	struct max8998_battery_data *max8998 = container_of(psy,
-			struct max8998_battery_data, battery);
-	struct i2c_client *i2c = max8998->iodev->i2c;
+	struct max8998_battery_data *max8998;
+	struct i2c_client *i2c;
 	int ret;
 	u8 reg;
+	enum cable_type_t cable_status;
+
+	if (psy->type == POWER_SUPPLY_TYPE_MAINS) {
+		max8998 = container_of(psy, struct max8998_battery_data, psy_ac);
+	} else {
+		max8998 = container_of(psy, struct max8998_battery_data, psy_usb);
+	}
+
+	i2c = max8998->iodev->i2c;
+	cable_status = max8998->cable_status;
 
 	switch (psp) {
-	case POWER_SUPPLY_PROP_PRESENT:
-		ret = max8998_read_reg(i2c, MAX8998_REG_STATUS2, &reg);
-		if (ret)
+	case POWER_SUPPLY_PROP_STATUS:
+		ret = max8998_read_reg(i2c, MAX8998_REG_IRQ1, &reg);
+		if (ret < 0)
 			return ret;
-		if (reg & (1 << 4))
-			val->intval = 0;
-		else
+
+		ret = max8998_read_reg(i2c, MAX8998_REG_IRQ3, &reg);
+		if (ret < 0)
+			return ret;
+
+		val->intval = (reg & 0x4) || (ret != 0);
+		break;
+	case POWER_SUPPLY_PROP_PRESENT:
+		if (psy->type == POWER_SUPPLY_TYPE_MAINS && cable_status == CABLE_TYPE_AC) {
 			val->intval = 1;
+		} else if (psy->type == POWER_SUPPLY_TYPE_USB && cable_status == CABLE_TYPE_USB) {
+			val->intval = 1;
+		} else {
+			val->intval = 0;
+		}
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
-		ret = max8998_read_reg(i2c, MAX8998_REG_STATUS2, &reg);
-		if (ret)
-			return ret;
-		if (reg & (1 << 3))
+		/* Check if we're present */
+		if ((psy->type == POWER_SUPPLY_TYPE_MAINS && cable_status == CABLE_TYPE_AC)
+					|| (psy->type == POWER_SUPPLY_TYPE_USB && cable_status == CABLE_TYPE_USB)) {
+			/* Check charging status */
+			ret = max8998_read_reg(i2c, MAX8998_REG_STATUS2, &reg);
+			if (ret)
+				return ret;
+
+			val->intval = reg & MAX8998_MASK_VDCIN;
+		} else {
 			val->intval = 0;
-		else
-			val->intval = 1;
+		}
 		break;
 	default:
 		return -EINVAL;
@@ -160,19 +241,37 @@ static __devinit int max8998_battery_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-	max8998->battery.name = "max8998_pmic";
-	max8998->battery.type = POWER_SUPPLY_TYPE_BATTERY;
-	max8998->battery.get_property = max8998_battery_get_property;
-	max8998->battery.properties = max8998_battery_props;
-	max8998->battery.num_properties = ARRAY_SIZE(max8998_battery_props);
+	max8998->psy_ac.name = "max8998_ac";
+	max8998->psy_ac.type = POWER_SUPPLY_TYPE_MAINS;
+	max8998->psy_ac.get_property = max8998_battery_get_property;
+	max8998->psy_ac.properties = max8998_battery_props;
+	max8998->psy_ac.num_properties = ARRAY_SIZE(max8998_battery_props);
 
-	ret = power_supply_register(max8998->dev, &max8998->battery);
+	ret = power_supply_register(max8998->dev, &max8998->psy_ac);
 	if (ret) {
-		dev_err(max8998->dev, "failed: power supply register\n");
+		dev_err(max8998->dev, "failed: power supply register (ac)\n");
 		goto err;
 	}
 
+	max8998->psy_usb.name = "max8998_usb";
+	max8998->psy_usb.type = POWER_SUPPLY_TYPE_USB;
+	max8998->psy_usb.get_property = max8998_battery_get_property;
+	max8998->psy_usb.properties = max8998_battery_props;
+	max8998->psy_usb.num_properties = ARRAY_SIZE(max8998_battery_props);
+
+	ret = power_supply_register(max8998->dev, &max8998->psy_usb);
+	if (ret) {
+		dev_err(max8998->dev, "failed: power supply register (usb)\n");
+		goto err2;
+	}
+
+	max8998->callbacks.set_cable = max8998_set_cable;
+	if (pdata->register_callbacks)
+		pdata->register_callbacks(&max8998->callbacks);
+
 	return 0;
+err2:
+	power_supply_unregister(&max8998->psy_ac);
 err:
 	kfree(max8998);
 	return ret;
@@ -182,7 +281,8 @@ static int __devexit max8998_battery_remove(struct platform_device *pdev)
 {
 	struct max8998_battery_data *max8998 = platform_get_drvdata(pdev);
 
-	power_supply_unregister(&max8998->battery);
+	power_supply_unregister(&max8998->psy_ac);
+	power_supply_unregister(&max8998->psy_usb);
 	kfree(max8998);
 
 	return 0;
