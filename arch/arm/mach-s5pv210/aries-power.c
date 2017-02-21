@@ -234,7 +234,8 @@ static struct i2c_board_info i2c9_devs[] __initdata = {
 };
 
 static char *charger_src[] = {
-	"max8998_pmic",
+	"max8998_usb",
+	"max8998_ac",
 	NULL,
 };
 

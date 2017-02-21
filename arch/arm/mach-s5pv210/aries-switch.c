@@ -23,7 +23,33 @@
 
 #include <mach/aries.h>
 
+static void fsa9480_usb_cb(u8 attached)
+{
+#if 0
+	struct usb_gadget *gadget = platform_get_drvdata(&s3c_device_usbgadget);
+
+	if (gadget) {
+		if (attached)
+			usb_gadget_vbus_connect(gadget);
+		else
+			usb_gadget_vbus_disconnect(gadget);
+		}
+#endif
+	set_cable_status = attached ? CABLE_TYPE_USB : CABLE_TYPE_NONE;
+	if (charger_callbacks && charger_callbacks->set_cable)
+		charger_callbacks->set_cable(charger_callbacks, set_cable_status);
+}
+
+static void fsa9480_charger_cb(u8 attached)
+{
+	set_cable_status = attached ? CABLE_TYPE_AC : CABLE_TYPE_NONE;
+	if (charger_callbacks && charger_callbacks->set_cable)
+		charger_callbacks->set_cable(charger_callbacks, set_cable_status);
+}
+
 static struct fsa9480_platform_data fsa9480_pdata = {
+	.usb_cb = fsa9480_usb_cb,
+	.charger_cb = fsa9480_charger_cb,
 	.wakeup	= true,
 };
 

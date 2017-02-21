@@ -409,6 +409,19 @@ static struct max8998_regulator_data aries_regulators[] = {
 	{ MAX8998_CHARGER,   &aries_charger_data },
 };
 
+struct max8998_charger_callbacks *charger_callbacks;
+enum cable_type_t set_cable_status;
+
+static void max8998_charger_register_callbacks(
+		struct max8998_charger_callbacks *ptr)
+{
+	charger_callbacks = ptr;
+	/* if there was a cable status change before the charger was
+	ready, send this now */
+	if ((set_cable_status != 0) && charger_callbacks && charger_callbacks->set_cable)
+		charger_callbacks->set_cable(charger_callbacks, set_cable_status);
+}
+
 static struct max8998_platform_data max8998_pdata = {
 	.regulators	= aries_regulators,
 	.num_regulators	= ARRAY_SIZE(aries_regulators),
@@ -425,10 +438,10 @@ static struct max8998_platform_data max8998_pdata = {
 	.buck2_set3	= GPIO_BUCK_2_EN,
 	.buck2_default_idx = 0,
 	.wakeup		= true,
-	.eoc		= 0,
-	.restart	= 0,
-	.timeout	= 6,
-	
+	.eoc		= 30,
+	.restart	= -1,
+	.timeout	= 7,
+	.register_callbacks	= &max8998_charger_register_callbacks,
 };
 
 static struct i2c_board_info i2c6_devs[] __initdata = {

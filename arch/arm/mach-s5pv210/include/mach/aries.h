@@ -8,6 +8,8 @@
 #ifndef __ARIES_H
 #define __ARIES_H __FILE__
 
+#include <linux/mfd/max8998.h>
+
 #define S5PV210_LCD_WIDTH	480
 #define S5PV210_LCD_HEIGHT	800
 
@@ -27,4 +29,8 @@ extern struct s5p_panel_data aries_panel_data;
 
 /* restart handler */
 void aries_restart(char mode, const char *cmd);
+
+/* USB switch callback */
+extern struct max8998_charger_callbacks *charger_callbacks;
+extern enum cable_type_t set_cable_status;
 #endif
