@@ -79,6 +79,9 @@ static int max17040_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_ONLINE:
 		val->intval = chip->online;
 		break;
+	case POWER_SUPPLY_PROP_TECHNOLOGY:
+		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
+		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		val->intval = chip->vcell * 1250;
 		break;
