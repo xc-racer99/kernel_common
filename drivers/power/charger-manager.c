@@ -543,6 +543,21 @@ static int charger_get_property(struct power_supply *psy,
 		else
 			val->intval = POWER_SUPPLY_HEALTH_GOOD;
 		break;
+	case POWER_SUPPLY_PROP_TECHNOLOGY:
+		if (!cm->fuel_gauge) {
+			ret = -ENODEV;
+			break;
+		}
+
+		if (!is_batt_present(cm)) {
+			/* There is no battery */
+			val->intval = POWER_SUPPLY_TECHNOLOGY_UNKNOWN;
+			break;
+		}
+
+		ret = cm->fuel_gauge->get_property(cm->fuel_gauge,
+					POWER_SUPPLY_PROP_TECHNOLOGY, val);
+		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		if (is_batt_present(cm))
 			val->intval = 1;
@@ -696,6 +711,7 @@ static enum power_supply_property default_charger_props[] = {
 	/* Guaranteed to provide */
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_HEALTH,
+	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_CAPACITY,
