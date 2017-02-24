@@ -2160,6 +2160,20 @@ static struct samsung_gpio_chip s5pv210_gpios_4bit[] = {
 			.label	= "MP05",
 		},
 	}, {
+		.config	= &s5pv210_gpio_cfg_noint,
+		.chip	= {
+			.base	= S5PV210_MP06(0),
+			.ngpio	= S5PV210_GPIO_MP06_NR,
+			.label	= "MP06",
+		},
+	}, {
+		.config	= &s5pv210_gpio_cfg_noint,
+		.chip	= {
+			.base	= S5PV210_MP07(0),
+			.ngpio	= S5PV210_GPIO_MP07_NR,
+			.label	= "MP07",
+		},
+	}, {
 		.base	= (S5P_VA_GPIO + 0xC00),
 		.irq_base = IRQ_EINT(0),
 		.config	= &samsung_gpio_cfgs[3],
