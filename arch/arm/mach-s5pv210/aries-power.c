@@ -229,7 +229,6 @@ static struct i2c_board_info i2c9_devs[] __initdata = {
 	{
 		I2C_BOARD_INFO("max17040", (0x6D >> 1)),
 		.platform_data = &max17040_pdata,
-		.irq = IRQ_EINT(27),
 	},
 };
 

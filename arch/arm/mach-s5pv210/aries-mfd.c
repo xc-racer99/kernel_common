@@ -449,9 +449,15 @@ static struct i2c_board_info i2c6_devs[] __initdata = {
 		/* The address is 0xCC used since SRAD = 0 */
 		I2C_BOARD_INFO("max8998", (0xCC >> 1)),
 		.platform_data	= &max8998_pdata,
-		.irq			= S5P_IRQ_VIC0(7), /* IRQ_EINT7 */
 	},
 };
+
+static void __init aries_mfd_cfg_gpio(void)
+{
+	s3c_gpio_cfgrange_nopull(GPIO_AP_PMIC_IRQ, 1, EINT_MODE);
+	i2c6_devs[0].irq = gpio_to_irq(GPIO_AP_PMIC_IRQ);
+}
+
 
 static struct platform_device *aries_devices[] __initdata = {
 	&s3c_device_i2c6,
@@ -463,6 +469,7 @@ void __init aries_mfd_init(void)
 	platform_add_devices(aries_devices, ARRAY_SIZE(aries_devices));
 	
 	/* max8998 */
+	aries_mfd_cfg_gpio();
 	i2c_register_board_info(6, i2c6_devs, ARRAY_SIZE(i2c6_devs));
 	regulator_has_full_constraints();
 }

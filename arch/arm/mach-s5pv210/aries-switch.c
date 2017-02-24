@@ -57,28 +57,23 @@ static struct i2c_board_info i2c7_devs[] __initdata = {
 	{
 		I2C_BOARD_INFO("fsa9480", (0x4A >> 1)),
 		.platform_data = &fsa9480_pdata,
-		.irq = IRQ_EINT(23),
 	},
 };
 
 static void __init aries_switch_cfg_gpio(void)
 {
-	s3c_gpio_cfgpin(GPIO_USB_SEL, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_USB_SEL, S3C_GPIO_PULL_NONE);
-	s3c_gpio_cfgpin(GPIO_UART_SEL, S3C_GPIO_OUTPUT);
-	s3c_gpio_setpull(GPIO_UART_SEL, S3C_GPIO_PULL_NONE);
-
 	s3c_gpio_cfgpin(GPIO_JACK_nINT, S3C_GPIO_SFN(0xf));
 	s3c_gpio_setpull(GPIO_JACK_nINT, S3C_GPIO_PULL_NONE);
+    i2c7_devs[0].irq = gpio_to_irq(GPIO_JACK_nINT);
 }
 
 void __init aries_switch_init(void)
 {
-	/* register device */
-	platform_device_register(&s3c_device_i2c7);
-
 	/* switch gpio config */
 	aries_switch_cfg_gpio();
+
+	/* register device */
+	platform_device_register(&s3c_device_i2c7);
 
 	/* register fsa9480 */
 	i2c_register_board_info(7, i2c7_devs, ARRAY_SIZE(i2c7_devs));
