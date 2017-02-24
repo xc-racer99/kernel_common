@@ -160,11 +160,8 @@ static void __init aries_fixup(struct tag *tag, char **cmdline,
 	mi->bank[0].size = 80 * SZ_1M;
 
 	mi->bank[1].start = 0x40000000;
-	mi->bank[1].size = 256 * SZ_1M;
-
-	mi->bank[2].start = 0x50000000;
-	mi->bank[2].size = 128 * SZ_1M;
-	mi->nr_banks = 3;
+	mi->bank[1].size = 384 * SZ_1M;
+	mi->nr_banks = 2;
 }
 
 static void __init aries_map_io(void)
@@ -183,10 +180,10 @@ static struct s3c_hsotg_plat aries_hsotg_pdata;
 static void __init aries_machine_init(void)
 {
 
+	aries_pm_init();
+
 	/* Initialize the GPIOs */
 	aries_gpio_init();
-
-	aries_pm_init();
 
 	platform_add_devices(aries_devices, ARRAY_SIZE(aries_devices));
 
